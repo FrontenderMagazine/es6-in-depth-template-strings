@@ -1,4 +1,5 @@
-<article class="post">
+#ES6 In Depth: Template strings
+
 *[ES6 In Depth][1] is a series on new features being added to the JavaScript
 programming language in the 6th Edition of the ECMAScript standard, ES6 for 
 short.*
@@ -9,17 +10,15 @@ ll see whether I can keep that promise in the end.
 
 For now, let’s start with something simple.
 
-### Backtick basics
+## Backtick basics
 
 ES6 introduces a new kind of string literal syntax called template strings.
 They look like ordinary strings, except using the backtick character`` ` ``
 rather than the usual quote marks`'` or `"`. In the simplest case, they really
 are just strings:
 
-    context.fillText(<span>`Ceci n'est pas une chaîne.`, x, y);
-    </span>
+    context.fillText(`Ceci n'est pas une chaîne.`, x, y);
 
-` ` 
 But there’s a reason these are called “template strings” and not “
 boring plain old strings that don’t do anything special, only with backticks”. 
 Template strings bring simple[string interpolation][2] to JavaScript. That is,
@@ -28,21 +27,18 @@ they’re a nice-looking, convenient way to plug JavaScript values into a string
 There are one million ways to use this, but the one that warms my heart is the
 humble error message:
 
-    <span><span>function <span>authorize<span>(user, action) {
-      <span>if (!user.hasPrivilege(action)) {
-        <span>throw <span>new <span>Error(
-          <span>`User <span>${user.name} is not authorized to do <span>${action}.`);
+    function authorize(user, action) {
+      if (!user.hasPrivilege(action)) {
+        throw new Error(
+          `User ${user.name} is not authorized to do ${action}.`);
       }
     }
-    </span></span></span></span></span></span></span></span></span></span></span>
 
-` ` 
 In this example, `${user.name}` and `${action}` are called template
 substitutions. JavaScript will plug the values `user.name` and `action` into
 the resulting string. This could generate a message like
 `User jorendorff is not authorized to do hockey.` (Which is true. I don’t
-have a hockey license.
-)
+have a hockey license.)
 
 So far, this is just a slightly nicer syntax for the `+` operator, and the
 details are what you would expect:
@@ -67,14 +63,12 @@ details are what you would expect:
 
 Unlike ordinary strings, template strings can cover multiple lines:
 
-    $(<span>"#warning").html(<span>`
+    $("#warning").html(`
       <h1>Watch out!</h1>
       <p>Unauthorized hockeying can result in penalties
-      of up to <span>${maxPenalty} minutes.</p>
+      of up to ${maxPenalty} minutes.</p>
     `);
-    </span></span></span>
 
-` ` 
 All whitespace in the template string, including newlines and indentation, is
 included verbatim in the output.
 
@@ -87,24 +81,24 @@ cross the equator without being crushed by sea monsters or falling off the edge
 of the earth? No. He turned back, went home, and had a nice lunch. You like 
 lunch, right?
 
-### Backtick the future
+## Backtick the future
 
 Let’s talk about a few things template strings *don’t* do.
 
 *   They don’t automatically escape special characters for you. To avoid 
     [cross-site scripting][4] vulnerabilities, you’ll still have to treat
     untrusted data with care, just as if you were concatenating ordinary strings.
-   
+
 
 *   It’s not obvious how they would interact with an 
     [internationalization library][5] (a library for helping your code speak
     different languages to different users). Template strings don’t handle language-
     specific formatting of numbers and dates, much less plurals.
-   
+
 
 *   They aren’t a replacement for template libraries, like [Mustache][6] or 
     [Nunjucks][7].
-    
+
     Template strings don’t have any built-in syntax for looping—building
     the rows of an HTML table from an array, for example—or even conditionals. (Yes,
     you could use template inception for this, but to me it seems like the sort of 
@@ -123,11 +117,9 @@ limitation listed above: automatically escaping special characters.
 Note that `SaferHTML` is *not* something provided by the ES6 standard library.
 We’re going to implement it ourselves below.
 
-    <span>var message =
-      SaferHTML<span>`<p><span>${bonk.sender} has sent you a bonk.</p>`;
-    </span></span></span>
+    var message =
+      SaferHTML`<p>${bonk.sender} has sent you a bonk.</p>`;
 
-` ` 
 The tag here is the single identifier `SaferHTML`, but a tag can also be a
 property, like`SaferHTML.escape`, or even a method call, like 
 `SaferHTML.escape({unicodeControlCharacters: false})`. (To be precise, any ES6
@@ -139,19 +131,17 @@ function call*.
 
 The code above is equivalent to:
 
-    <span>var message =
-      SaferHTML(<var>templateData</var>, bonk.sender);
-    </span>
+    var message =
+      SaferHTML(templateData, bonk.sender);
 
-` ` 
-where `<var>templateData</var>` is an immutable array of all the string
+where `templateData` is an immutable array of all the string
 parts of the template, created for us by the JS engine. Here the array would 
 have two elements, because there are two string parts in the tagged template, 
-separated by a substitution. So`<var>templateData</var>` will be like 
+separated by a substitution. So`templateData` will be like 
 `<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/freeze" target="_blank">Object.freeze</a>(["<p>", " has sent you a bonk.</p>"]`
 
-(There is actually one more property present on `<var>templateData</var>`
-`<var>templateData</var>.raw` is another array containing all the string
+(There is actually one more property present on `templateData`
+`templateData.raw` is another array containing all the string
 parts in the tagged template, but this time exactly as they looked in the source
 code—with escape sequences like`\n` left intact, rather than being turned into
 newlines and so on. The standard tag[`String.raw`][9] uses these raw strings
@@ -166,24 +156,22 @@ function. You can test your work in the Firefox developer console.
 
 Here is one possible answer (also available [as a gist][10]).
 
-    <span><span>function <span>SaferHTML<span>(templateData) {
-      <span>var s = templateData[<span>0];
-      <span>for (<span>var i = <span>1; i < <span>arguments.length; i++) {
-        <span>var arg = <span>String(<span>arguments[i]);
+    function SaferHTML(templateData) {
+      var s = templateData[0];
+      for (var i = 1; i < arguments.length; i++) {
+        var arg = String(arguments[i]);
     
-        <span>// Escape special characters in the substitution.
-        s += arg.replace(<span>/&/g, <span>"&amp;")
-                .replace(<span>/</g, <span>"&lt;")
-                .replace(<span>/>/g, <span>"&gt;");
+        // Escape special characters in the substitution.
+        s += arg.replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
     
-        <span>// Don't escape special characters in the template.
+        // Don't escape special characters in the template.
         s += templateData[i];
       }
-      <span>return s;
+      return s;
     }
-    </span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span></span>
 
-` ` 
 With this definition, the tagged template 
 `` SaferHTML`<p>${bonk.sender} has sent you a bonk.</p>` `` might
 expand to the string`"<p>ES6&lt;3er has sent you a bonk.</p>"`
@@ -231,11 +219,10 @@ what else you could do.
     might look like. Just one example, as a teaser:
    
     
-        i18n<span>`Hello <span>${name}, you have <span>${amount}:c(CAD) in your bank account.`
-        <span>// => Hallo Bob, Sie haben 1.234,56 $CA auf Ihrem Bankkonto.
-        </span></span></span></span>
+        i18n`Hello ${name}, you have ${amount}:c(CAD) in your bank account.`
+        // => Hallo Bob, Sie haben 1.234,56 $CA auf Ihrem Bankkonto.
+        
     
-    ` ` 
     Note how in this example, `name` and `amount` are JavaScript, but there’s
     a different bit of unfamiliar code, that
    `:c(CAD)`, which Jack places in the *string* part of the template.
@@ -253,23 +240,22 @@ what else you could do.
     the feature, write a tag that provides it.
    
     
-        <span>// Purely hypothetical template language based on
-        <span>// ES6 tagged templates.
-        <span>var libraryHtml = hashTemplate<span>`
+        // Purely hypothetical template language based on
+        // ES6 tagged templates.
+        var libraryHtml = hashTemplate`
           <ul>
-            #for book in <span>${myBooks}
+            #for book in ${myBooks}
               <li><i>#{book.title}</i> by #{book.author}</li>
             #end
           </ul>
         `;
-        </span></span></span></span></span>
+        
 
 The flexibility doesn’t stop there. Note that the arguments to a tag function
 are not automatically converted to strings. They can be anything. The same goes 
 for the return value. Tagged templates are not even necessarily strings! You 
 could use custom tags to create regular expressions, DOM trees, images, promises
-representing whole asynchronous processes, JS data structures, GL shaders.
-..
+representing whole asynchronous processes, JS data structures, GL shaders...
 
 **Tagged templates invite library designers to create powerful domain-specific
 languages.** These languages might look nothing like JS, but they can still
@@ -277,7 +263,7 @@ embed in JS seamlessly and interact intelligently with the rest of the language.
 Offhand, I can’t think of anything quite like it in any other language. I don’t 
 know where this feature will take us. The possibilities are exciting.
 
-### When can I start using this?
+## When can I start using this?
 
 On the server, ES6 template strings are supported in io.js today.
 
@@ -286,7 +272,7 @@ Experimental JavaScript” preference, which is off by default. For now, you’l
 need to use[Babel][14] or [Traceur][15] if you want to use template strings on
 the web. You can also use them right now in[TypeScript][16]!
 
-### Wait—what about Markdown?
+## Wait—what about Markdown?
 
 Hmm?
 
@@ -321,7 +307,7 @@ the beginning: you can use multiple backticks as code delimiters, like this:
 [This Gist][18] has the details, and it’s written in Markdown so you can look
 at the source.
 
-### Up next
+## Up next
 
 Next week, we’ll look at two features that programmers have enjoyed in other
 languages for decades: one for people who like to avoid an argument where 
@@ -330,29 +316,23 @@ about function arguments, of course. Both features are really for all of us.
 
 We’ll see these features through the eyes of the person who implemented them
 in Firefox. So please join us next week, as guest author Benjamin Peterson 
-presents ES6 default parameters and rest parameters in depth.</article>
+presents ES6 default parameters and rest parameters in depth.
 
  [1]: https://hacks.mozilla.org/category/es6-in-depth/
  [2]: https://en.wikipedia.org/wiki/String_interpolation
  [3]: https://en.wikipedia.org/wiki/Lopes_Gon%C3%A7alves
-
  [4]: http://www.techrepublic.com/blog/it-security/what-is-cross-site-scripting/
  [5]: http://yuilibrary.com/yui/docs/intl/
  [6]: https://mustache.github.io/
  [7]: https://mozilla.github.io/nunjucks/
-
  [8]: https://people.mozilla.org/~jorendorff/es6-draft.html#sec-left-hand-side-expressions
-
  [9]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/raw
  [10]: https://gist.github.com/jorendorff/1a17f69dbfaafa2304f0
-
  [11]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/arguments
-
  [12]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakMap
  [13]: http://jaysoo.ca/2014/03/20/i18n-with-es6-template-strings/
  [14]: http://babeljs.io/
  [15]: https://github.com/google/traceur-compiler#what-is-traceur
-
  [16]: http://blogs.msdn.com/b/typescript/archive/2015/01/16/announcing-typescript-1-4.aspx
  [17]: http://daringfireball.net/projects/markdown/basics
  [18]: https://gist.github.com/jorendorff/d3df45120ef8e4a342e5
