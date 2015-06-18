@@ -323,14 +323,14 @@ JS, но при этом встраиваться в JS как влитые и �
  [6]: https://mustache.github.io/
  [7]: https://mozilla.github.io/nunjucks/
  [8]: https://people.mozilla.org/~jorendorff/es6-draft.html#sec-left-hand-side-expressions
- [9]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/raw
+ [9]: https://developer.mozilla.org/ru/docs/Web/JavaScript/Reference/Global_Objects/String/raw
  [10]: https://gist.github.com/jorendorff/1a17f69dbfaafa2304f0
- [11]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/arguments
- [12]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakMap
+ [11]: https://developer.mozilla.org/ru/docs/Web/JavaScript/Reference/Functions/arguments
+ [12]: https://developer.mozilla.org/ru/docs/Web/JavaScript/Reference/Global_Objects/WeakMap
  [13]: http://jaysoo.ca/2014/03/20/i18n-with-es6-template-strings/
  [14]: http://babeljs.io/
  [15]: https://github.com/google/traceur-compiler#what-is-traceur
  [16]: http://blogs.msdn.com/b/typescript/archive/2015/01/16/announcing-typescript-1-4.aspx
  [17]: http://daringfireball.net/projects/markdown/basics
  [18]: https://gist.github.com/jorendorff/d3df45120ef8e4a342e5
- [19]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/freeze
+ [19]: https://developer.mozilla.org/ru/docs/Web/JavaScript/Reference/Global_Objects/Object/freeze
