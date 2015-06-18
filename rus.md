@@ -128,198 +128,192 @@ _[ES6 в деталях][1] — это цикл статей о новых во�
 совсем точным, любое выражение [MemberExpression или CallExpression][8] может
 быть тегом.)
 
-We saw that untagged template strings are shorthand for simple string
-concatenation. Tagged templates are shorthand for something else entirely:*a
-function call*.
+Мы видели, что шаблонные строки без меток — это краткий способ простой строковой
+конкатенации. Помеченные шаблоны — это нечто совсем другое, *вызов функции*.
 
-The code above is equivalent to:
+Код выше эквивалентен такому:
 
     var message =
       SaferHTML(templateData, bonk.sender);
 
-where `templateData` is an immutable array of all the string
-parts of the template, created for us by the JS engine. Here the array would 
-have two elements, because there are two string parts in the tagged template, 
-separated by a substitution. So`templateData` will be like 
-`<a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/freeze" target="_blank">Object.freeze</a>(["<p>", " has sent you a bonk.</p>"]`
+где `templateData` — это неизменяемый массив всех частей строки в шаблоне,
+созданный для нас движком JS. В нашем случае в массиве будет два элемента,
+потому что в помеченной шаблонной строке две части, разделённых подстановкой.
+Так что `templateData` будет
+[`Object.freeze`][19]`(["<p>", " отвесил вам леща.</p>")`
 
-(There is actually one more property present on `templateData`
-`templateData.raw` is another array containing all the string
-parts in the tagged template, but this time exactly as they looked in the source
-code—with escape sequences like`\n` left intact, rather than being turned into
-newlines and so on. The standard tag[`String.raw`][9] uses these raw strings
-.)
+(На самом деле, в `templateData` есть ещё одно свойство, `templateData.raw` —
+это другой массив, содержащий все строковые части шаблона, но на этот раз они в
+точности в таком виде, в каком они были в исходном коде, экранирующие
+последовательности вроде `\n` оставлены в нём как есть, вместо того, чтобы
+превратиться в перевод каретки, ну и тому подобное. Стандартная метка
+[`String.raw`][9] использует эти сырые строки.)
 
-This gives the `SaferHTML` function free rein to interpret both the string and
-the substitutions in a million possible ways.
+Это даёт функции `SaferHTML` свободу интерпретировать как строку, так и
+подстановки миллионом различных способов.
 
-Before reading on, maybe you’d like to try to puzzle out just what `SaferHTML`
-should do, and then try your hand at implementing it. After all, it’s just a 
-function. You can test your work in the Firefox developer console.
+Прежде чем продолжить чтение, может быть вы захотите попробовать разобраться в
+том, что `SaferHTML` должна делать и попробуете вручную её реализовать?
+В конце концов, это же всего лишь обычная функция. Мы можете проверять, что
+у вас получается в консоли разработчика в Firefox.
 
-Here is one possible answer (also available [as a gist][10]).
+Вот одно из возможных решений (также доступное [как gist][10]).
 
     function SaferHTML(templateData) {
       var s = templateData[0];
       for (var i = 1; i < arguments.length; i++) {
         var arg = String(arguments[i]);
     
-        // Escape special characters in the substitution.
+        // Экранируем спецсимволы в подстановках.
         s += arg.replace(/&/g, "&amp;")
                 .replace(/</g, "&lt;")
                 .replace(/>/g, "&gt;");
     
-        // Don't escape special characters in the template.
+        // Не экранируем спецсимволы в шаблоне.
         s += templateData[i];
       }
       return s;
     }
 
-With this definition, the tagged template 
-`` SaferHTML`<p>${bonk.sender} has sent you a bonk.</p>` `` might
-expand to the string`"<p>ES6&lt;3er has sent you a bonk.</p>"`
-`Hacker Steve <script>alert('xss');</script>`, sends them a bonk.
-Whatever that means.
+В таком определении помеченный шаблон
+`` SaferHTML`<p>${bonk.sender} отвесил вам леща.</p>` `` может развернуться в
+строку `"<p>ES6&lt;3er отвесил вам леща.</p>"`. Ваши пользователи в безопасности
+даже если пользователь со зловредным именем вроде
+`Хакер Стив <script>alert('xss');</script>` отвесит им леща. Что бы это ни
+значило.
 
-(Incidentally, if the way that function uses [the arguments object][11] strikes
-you as a bit clunky, drop by next week. There’s*another* new feature in ES6
-that I think you’ll like.
-)
+(Кстати, если такой способ использования функцией [объекта arguments][11]
+кажется вам неуклюжим, заходите на следующей неделе. В ES6 есть *ещё одна* фича,
+которая, думаю, вам понравится.)
 
-A single example isn’t enough to illustrate the flexibility of tagged
-templates. Let’s revisit our earlier list of template string limitations to see 
-what else you could do.
+Одного примера будет недостаточно, чтобы продемонстрировать всю гибкость
+помеченных шаблонов. Давайте вернёмся как нашему списку выше, с ограничениями
+шаблонных строк, чтобы посмотреть, что ещё можно делать.
 
-*   Template strings don’t auto-escape special characters. But as we’ve
-    seen, with tagged templates, you can fix that problem yourself with a tag.
-   
-    
-    In fact, you can do a lot better than that.
-    
-    From a security perspective, my `SaferHTML` function is pretty weak.
-    Different places in HTML have different special characters that need to be 
-    escaped in different ways;
-   `SaferHTML` does not escape them all. But with some effort, you could write
-    a much smarter
-   `SaferHTML` function that actually parses the bits of HTML in the strings in
-   `templateData`, so that it knows which substitutions are in plain HTML;
-    which ones are inside element attributes, and thus need to escape
-   `'` and `"`; which ones are in URL query strings, and thus need URL-escaping
-    rather than HTML-escaping; and so on. It could perform just the right escaping 
-    for each substitution.
-   
-    
-    Does this sound far-fetched because HTML parsing is slow? Fortunately, the
-    string parts of a tagged template do not change when the template is evaluated 
-    again.
-   `SaferHTML` could cache the results of all this parsing, to speed up later
-    calls. (The cache could be a
-   [WeakMap][12], another ES6 feature that we’ll discuss in a future post.)
+*   Шаблонные строки не экранируют спецсимволы автоматически. Но, как мы
+    увидели, с помеченными шаблонами вы можете исправить это дело
+    самостоятельно, написав метку.
 
-*   Template strings don’t have built-in internationalization features. But
-    with tags, we could add them.
-   [A blog post by Jack Hsu][13] shows what the first steps down that road
-    might look like. Just one example, as a teaser:
-   
-    
+    Вообще говоря, можно делать даже намного лучше.
+
+    С точк зрения безопасности моя функция `SaferHTML` достаточно слабая.
+    В разных местах HTML есть разные спецсимволы, которые нужно по-разному
+    экранировать, и `SaferHTML` экранирует не все из них.
+    Но приложив небольшое усилие вы могли бы написать намного более умную
+    функцию `SaferHTML`, которая разбирает куски HTML в строках из массива
+    `templateData`, чтобы узнать, какие подстановки в простом HTML; какие из них
+    внутри атрибутов и требуют ещё и экранирования `'` и `"`; какие в строке
+    запроса в URL и должны экранироваться как в URL, а не как в HTML; ну и так
+    далее. Она могла бы применять нужное экранирование к каждой подстановке.
+
+    Вам кажется, что это оторвано от реальности, потому что разбор HTML
+    медленный? К счастью, строковые части помеченного шаблона не меняются,
+    когда шаблон вычисляется повторно. `SaferHTML` могла бы кэшировать
+    результаты этого разбора для ускорения будущих вызовов. (Этим кэшем может
+    быть [WeakMap][12], другая функциональность ES6, которую мы обсудим
+    в будущих статьях.)
+
+*   У шаблонных строк нет втроенных средств для интернационализации. Но с
+    метками мы можем их добавить.
+
+    [Статья Джека Хсу (Jack Hsu)][13] демонстрирует первые шаги к тому, как это
+    будет выглядеть. Один пример для привлечения внимания:
+
         i18n`Hello ${name}, you have ${amount}:c(CAD) in your bank account.`
-        // => Hallo Bob, Sie haben 1.234,56 $CA auf Ihrem Bankkonto.
-        
-    
-    Note how in this example, `name` and `amount` are JavaScript, but there’s
-    a different bit of unfamiliar code, that
-   `:c(CAD)`, which Jack places in the *string* part of the template.
-    JavaScript is of course handled by the JavaScript engine; the string parts are 
-    handled by Jack’s
-   `i18n` tag. Users would learn from the `i18n` documentation that `:c(CAD)`
-    means
-   `amount` is an amount of currency, denominated in Canadian dollars.
-    
-    *This* is what tagged templates are about.
+        // => Привет, Боб, у вас 1 234,56 канадских долларов на банковском счёте.
 
-*   Template strings are no replacement for Mustache and Nunjucks, partly
-    because they don’t have built-in syntax for loops or conditionals. But now we’re
-    starting to see how you would go about fixing this, right? If JS doesn’t provide
-    the feature, write a tag that provides it.
-   
-    
-        // Purely hypothetical template language based on
-        // ES6 tagged templates.
+    Заметьте, что в этом примере `name` и `account` — JavaScript, но есть ещё и
+    немного незнакомого кода, вот это `:c(CAD)`, которое Джек помещает в
+    *строковую* часть шаблона. JavaScript, само собой, обрабатывается движком
+    JavaScript, строковые же части обрабатываются написанной Джеком меткой
+    `i18n`. Из документации пользователь может узнать, что `:c(CAD)` обозначает,
+    что `amount` — это количество валюты, переведённое в канадские доллары.
+
+    *Вот*, для чего и нужны помеченные шаблоны.
+
+*   Шаблонные строки не заменяют Mustache и Nunjucks, отчасти из-за того, что в
+    них не встроен синтаксис для циклов и условий. Но теперь-то мы начинаем
+    видеть, как это можно исправить, верно? Если в JS нет какой-то
+    функциональности, можно написать метку, которая её реализует.
+
+        // Чисто гипотетический язык шаблонизатора, основанный на
+        // помеченныъ шаблонах ES6.
         var libraryHtml = hashTemplate`
           <ul>
             #for book in ${myBooks}
-              <li><i>#{book.title}</i> by #{book.author}</li>
+              <li><i>#{book.title}</i> от #{book.author}</li>
             #end
           </ul>
         `;
-        
 
-The flexibility doesn’t stop there. Note that the arguments to a tag function
-are not automatically converted to strings. They can be anything. The same goes 
-for the return value. Tagged templates are not even necessarily strings! You 
-could use custom tags to create regular expressions, DOM trees, images, promises
-representing whole asynchronous processes, JS data structures, GL shaders...
+Гибкость этим не ограничивается. Заметьте, что аргументы функции-метки не
+приводятся автоматически к строкам. Они могут быть чем угодно. То же самое
+касается и возвращаемого значения. Помеченные шаблоны даже не обязательно
+должны быть строками! Вы можете использовать собственные метки, чтобы создавать
+регулярки, деревья DOM, изображения, промисы над целыми асинхронными процессами,
+структуры данных JS, шейдеры GL…
 
-**Tagged templates invite library designers to create powerful domain-specific
-languages.** These languages might look nothing like JS, but they can still
-embed in JS seamlessly and interact intelligently with the rest of the language.
-Offhand, I can’t think of anything quite like it in any other language. I don’t 
-know where this feature will take us. The possibilities are exciting.
+**Помеченные шаблоны призывают разработчиков библиотек создавать мощные
+предметно-ориентированные языки.** Эти языки могут быть вообще непохожими на
+JS, но при этом встраиваться в JS как влитые и разумно взаимодействовать с
+остальным языком. Я сходу не могу вспомнить ничего подобного в других языках.
+Я не знаю, к чему эта возможность нас приведёт. Возможности потрясающие.
 
-## When can I start using this?
+## Когда можно начинать этим пользоваться?
 
-On the server, ES6 template strings are supported in io.js today.
+На сервере шаблонные строки поддерживаются в io.js уже сегодня.
 
-In browsers, Firefox 34+ supports template strings. Chrome 41+ with the “
-Experimental JavaScript” preference, which is off by default. For now, you’ll 
-need to use[Babel][14] or [Traceur][15] if you want to use template strings on
-the web. You can also use them right now in[TypeScript][16]!
+Из браузеров их поддерживает Firefox 34+. В Chrome поддержка зависит от
+настройки «Экспериментальный JavaScript», которая по умолчанию выключена.
+Пока что, если вы хотите применять шаблонные строки в вебе, нужно пользоваться
+[Babel][14] or [Traceur][15]. Вы также можете использовать их прямо сейчас в
+[TypeScript][16]!
 
-## Wait—what about Markdown?
+## Подождите! А что насчёт Markdown?
 
-Hmm?
+Хм-м?
 
-Oh. ...Good question.
+Ой. …Хороший вопрос.
 
-(This section isn’t really about JavaScript. If you don’t use [Markdown][17],
-you can skip it.
-)
+(Этот раздел не про JavaScript. Если вы не пользуетесь [Markdown][17], можете
+смело его пропускать.)
 
-With template strings, both Markdown and JavaScript now use the `` ` ``
-character to mean something special. In fact, in Markdown, it’s the delimiter 
-for`code` snippets in the middle of inline text.
+С появлением щаблонных строк выходит, что и Markdown и JavaScript теперь
+используют один и тот же символ `` ` `` для обозначеия чего-то особенного.
+По сути, в Markdown это разделитель кусков `кода` посреди обычного текста.
 
-This brings up a bit of a problem! If you write this in a Markdown document:
+А вот тут небольшая проблема! Если вы напишете в документе Markdown так:
 
-    To display a message, write `alert(`hello world!`)`.
-    
+    Чтобы показать сообщение, напишите `alert(`hello world!`)`.
 
-it’ll be displayed like this:
+то оно отобразится как:
 
-To display a message, write `alert(`hello world!`)`.
+Чтобы показать сообщение, напишите `alert(`hello world!`)`.
 
-Note that there are no backticks in the output. Markdown interpreted all four
-backticks as code delimiters and replaced them with HTML tags.
+Заметьте, на выходе нет обратных кавычек. Markdown интерпретировал все четыре
+обратные кавычки как разделители кодаи заменил их на теги HTML.
 
-To avoid this, we turn to a little-known feature that’s been in Markdown from
-the beginning: you can use multiple backticks as code delimiters, like this:
+Чтобы обойти эту напасть, мы обратимся к одной малоизвестной возможности,
+которая была в Markdown с самого начала: вы можете использовать несколько
+обратных кавычек как разделители кода. вот так:
 
-    To display a message, write ``alert(`hello world!`)``.
-    
+    Чтобы показать сообщение, напишите ``alert(`hello world!`)``.
 
-[This Gist][18] has the details, and it’s written in Markdown so you can look
-at the source.
+В [этом Gist][18] все подробности на эту тему, и он написан на Markdown, так
+что вы можете посмотреть на исходник.
 
-## Up next
+## Что дальше
 
-Next week, we’ll look at two features that programmers have enjoyed in other
-languages for decades: one for people who like to avoid an argument where 
-possible, and one for people who like to have lots of arguments. I’m talking 
-about function arguments, of course. Both features are really for all of us.
+На следующей неделе мы рассмотрим две фичи, которыми в других языках
+программисты пользовались десятилетиями. Одна для тех, кому хотелось бы по
+возможности избегать аргументов, а другая для тех, кому нравится, когда
+аргументов много. Я имею в виду аргументы функций, само собой. Обе фичи сделаны
+действительно для всех нас.
 
-We’ll see these features through the eyes of the person who implemented them
-in Firefox. So please join us next week, as guest author Benjamin Peterson 
-presents ES6 default parameters and rest parameters in depth.
+Мы посмотрим на них глазами человека, который реализовал их в Firefox. Так что
+пожалуйста присоединяйтесь к нам на следующей неделе, и наш гостевой автор
+Бенджамин Петерсон (Benjamin Peterson) представит в деталях параметры по
+умолчанию и остаточные параметры из ES6.
 
  [1]: https://hacks.mozilla.org/category/es6-in-depth/
  [2]: https://en.wikipedia.org/wiki/String_interpolation
@@ -339,3 +333,4 @@ presents ES6 default parameters and rest parameters in depth.
  [16]: http://blogs.msdn.com/b/typescript/archive/2015/01/16/announcing-typescript-1-4.aspx
  [17]: http://daringfireball.net/projects/markdown/basics
  [18]: https://gist.github.com/jorendorff/d3df45120ef8e4a342e5
+ [19]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/freeze
